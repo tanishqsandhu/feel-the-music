@@ -14,7 +14,7 @@ random.seed(123)
 
 # parse arguments
 parser = argparse.ArgumentParser(description='Process arguments.')
-parser.add_argument('-songpath', '--songpath', type=str, default='./audio_files/fluetesong.mp3',
+parser.add_argument('-songpath', '--songpath', type=str, default='./audio_files/flutesong.mp3',
                     help='Path to .mp3 song')
 parser.add_argument('-songname', '--songname', type=str, default='flutesong',
                     help='Name of song')
@@ -263,17 +263,16 @@ def get_rsa_for_actionset(args):
 
 def getbest(loc, num_actions, prev_states, prev_actions, music_matrix_full, num_steps, dance_matrix_type):
     """Return best combination of size num_actions.
-
     Start from `loc` in grid of size `GRID_SIZE`.
     """
     scale = int(music_matrix_full.shape[0] * (len(prev_states)+num_actions) / num_steps)
     music_matrix = np.array([music_matrix_full[i][:scale] for i in range(scale)])
     # get best dance for this music matrix
     bestreward = 0
-    p = Pool()
+    #p = Pool()
     args = ((actionset, music_matrix, loc, num_actions, prev_states, prev_actions, dance_matrix_type) for actionset in ALL_ACTION_COMBS)
-    res = p.map(get_rsa_for_actionset, args)
-    p.close()
+    res = map(get_rsa_for_actionset, args)
+    # p.close()
     for curr_reward, states, actions in res:
         if curr_reward is not False and curr_reward > bestreward:
             bestreward = curr_reward
@@ -371,6 +370,6 @@ if __name__ == "__main__":
 
     # visualize results
     save_matrices(music_matrix=music_matrix_full, dance_matrix=dance_matrix, duration=duration)
-    save_dance(states=states, visfolder=args.visfolder, songname=songname, duration=duration, num_steps=num_steps)
+    save_dance(states=states, visfolder=visfolder, songname=songname, duration=duration, num_steps=num_steps)
 
     print(songname, " :: DONE!")

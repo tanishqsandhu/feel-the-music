@@ -5,14 +5,13 @@ import subprocess
 import shutil
 import os
 
-
 def save_video(foldername, songname, songlen, num_steps, output):
     """Make video from given frames. Add audio appropriately."""
     num_steps_by_len = num_steps / songlen
     p = subprocess.Popen(['ffmpeg', '-f', 'image2', '-r', str(num_steps_by_len), '-i', '%d.png', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-vf', 'pad=ceil(iw/2)*2:ceil(ih/2)*2', 'movie.mp4'], cwd=foldername)
     p.wait()
 
-    p = subprocess.Popen(['ffmpeg', '-i', 'movie.mp4', '-i', '../audio_files/' + songname + '.mp3', '-map', '0:v', '-map', '1:a', '-c', 'copy', output], cwd=foldername)
+    p = subprocess.Popen(['ffmpeg', '-i', '../audio_files/flutesong.mp3', '-i', 'movie.mp4','-c', 'copy', '-map', '0:a', '-map', '1:v', output], cwd=foldername)
     p.wait()
 
 
@@ -57,4 +56,4 @@ def save_dance(states, visfolder, songname, duration, num_steps):
         c += 1
 
     # Save video
-    save_video('./plots', songname, duration, num_steps, songname + '.mp4')
+    save_video('./plots', songname, duration, num_steps, songname + '.mov')
