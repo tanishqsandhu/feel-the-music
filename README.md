@@ -1,7 +1,8 @@
 **Forked from @purvaten**
 
-# Feel The Music: Automatically Generating A Dance For An Input Song
-This is the official repository accompanying the paper "Feel The Music: Automatically Generating A Dance For An Input Song", by Purva Tendulkar, Abhishek Das, Aniruddha Kembhavi & Devi Parikh.
+
+
+# (Forked) Feel The Music: Automatically Generating A Dance For An Input Song
 
 Full text available at: https://arxiv.org/abs/2006.11905
 
