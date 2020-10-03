@@ -3,6 +3,7 @@
 
 
 # (Not official) Feel The Music: Automatically Generating A Dance For An Input Song
+This repository holds my work as an Undergraduate Research Assistant with Dr. Parikh, on top of her existing code Feel-The-Music
 
 Full text available at: https://arxiv.org/abs/2006.11905
 
