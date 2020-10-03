@@ -1,5 +1,5 @@
 """Script to generate all dances for a song."""
-from visualize import save_matrices, save_dance
+from visualize import save_matrices, save_dance, save_circles_dance
 from multiprocessing import Pool
 from PIL import Image
 import numpy as np
@@ -13,20 +13,31 @@ import scipy
 random.seed(123)
 
 # parse arguments
-parser = argparse.ArgumentParser(description='Process arguments.')
-parser.add_argument('-songpath', '--songpath', type=str, default='./audio_files/flutesong.mp3',
+voice_parser = argparse.ArgumentParser(description='Process arguments.')
+voice_parser.add_argument('-songpath', '--songpath', type=str, default='./audio_files/vocal.mp3',
                     help='Path to .mp3 song')
-parser.add_argument('-songname', '--songname', type=str, default='flutesong',
+voice_parser.add_argument('-songname', '--songname', type=str, default='We will rock you',
                     help='Name of song')
-parser.add_argument('-steps', '--steps', type=int, default=100,
+voice_parser.add_argument('-steps', '--steps', type=int, default=100,
                     help='Number of equidistant LRS steps the agent should take')
-parser.add_argument('-type', '--type', type=str, default='action',
+voice_parser.add_argument('-type', '--type', type=str, default='action',
                     help='Type of dance -- state, action, stateplusaction')
-parser.add_argument('-baseline', '--baseline', type=str, default='none',
+voice_parser.add_argument('-baseline', '--baseline', type=str, default='none',
                     help='Generate baseline -- none, unsync_random, unsync_sequential, sync_sequential, sync_random')
-parser.add_argument('-visfolder', '--visfolder', type=str, default='./vis_num_steps_20/dancing_color_blob_20',
+voice_parser.add_argument('-visfolder', '--visfolder', type=str, default='./vis_num_steps_20/dancing_color_20',
                     help='path to folder containing agent visualizations')
-args = parser.parse_args()
+voice_args = voice_parser.parse_args()
+
+instrumental_parser = argparse.ArgumentParser(description='Process arguments.')
+instrumental_parser.add_argument('-songpath', '--songpath', type=str, default='./audio_files/bakcgroundmusic.mp3',
+                    help='Path to .mp3 song')
+instrumental_parser.add_argument('-steps', '--steps', type=int, default=100,
+                    help='Number of equidistant LRS steps the agent should take')
+instrumental_parser.add_argument('-type', '--type', type=str, default='action',
+                    help='Type of dance -- state, action, stateplusaction')
+instrumental_parser.add_argument('-baseline', '--baseline', type=str, default='none',
+                    help='Generate baseline -- none, unsync_random, unsync_sequential, sync_sequential, sync_random')
+instrumental_args = instrumental_parser.parse_args()
 
 # global variables
 GRID_SIZE = 20
@@ -287,89 +298,155 @@ def getbest(loc, num_actions, prev_states, prev_actions, music_matrix_full, num_
 if __name__ == "__main__":
 
     # get args
-    songname = args.songname
-    baseline = args.baseline
-    dance_matrix_type = args.type
-    num_steps = args.steps
-    visfolder = args.visfolder
-    songpath = args.songpath
+    voice_songname = voice_args.songname
+    voice_baseline = voice_args.baseline
+    voice_dance_matrix_type = voice_args.type
+    voice_num_steps = voice_args.steps
+    voice_visfolder = voice_args.visfolder
+    voice_songpath = voice_args.songpath
+
+    instrumental_baseline = instrumental_args.baseline
+    instrumental_dance_matrix_type = instrumental_args.type
+    instrumental_songpath = instrumental_args.songpath
 
     # load song
-    y, sr = librosa.load(songpath)    # default sampling rate 22050
-    duration = librosa.get_duration(y=y, sr=sr)
+    y1, sr1 = librosa.load(voice_songpath)    # default sampling rate 22050
+    voice_duration = librosa.get_duration(y=y1, sr=sr1)
+
+    y2, sr2 = librosa.load(instrumental_songpath)    # default sampling rate 22050
+    instrumental_duration = librosa.get_duration(y=y2, sr=sr2)
 
     # get music matrix
-    music_matrix_full = compute_music_matrix(y, sr, MUSIC_MODE, MUSIC_METRIC)
+    voice_music_matrix_full = compute_music_matrix(y1, sr1, MUSIC_MODE, MUSIC_METRIC)
+    instrumental_music_matrix_full = compute_music_matrix(y2, sr2, MUSIC_MODE, MUSIC_METRIC)
 
-    # main code
-    if baseline in ['unsync_random', 'unsync_sequential', 'sync_sequential', 'sync_random']:
+    # main code for voice seperated part of song
+    if voice_baseline in ['unsync_random', 'unsync_sequential', 'sync_sequential', 'sync_random']:
         # check baselines
-        if baseline == 'unsync_random':
-            states, actions = unsync_random(num_steps=num_steps)
-        if baseline == 'unsync_sequential':
-            states, actions = unsync_sequential(num_steps=num_steps)
-        if baseline == 'sync_sequential':
-            states, actions = sync_sequential(num_steps=num_steps, filename=songpath, duration=duration)
+        if voice_baseline == 'unsync_random':
+            states, actions = unsync_random(num_steps=voice_num_steps)
+        if voice_baseline == 'unsync_sequential':
+            states, actions = unsync_sequential(num_steps=voice_num_steps)
+        if voice_baseline == 'sync_sequential':
+            states, actions = sync_sequential(num_steps=voice_num_steps, filename=voice_songpath, duration=voice_duration)
         else:
-            states, actions = sync_random(num_steps=num_steps, filename=songpath, duration=duration)
+            states, actions = sync_random(num_steps=voice_num_steps, filename=voice_songpath, duration=voice_duration)
 
         # compute dance matrix
-        dance_matrix = get_dance_matrix(states, actions, dance_matrix_type, music_matrix_full)
+        dance_matrix = get_dance_matrix(states, actions, voice_dance_matrix_type, voice_music_matrix_full)
 
         # compute correlation
-        reward = music_reward(music_matrix_full, dance_matrix, 'pearson')
+        reward = music_reward(voice_music_matrix_full, dance_matrix, 'pearson')
     else:
         # our approach
         # try out all combinations of `REWARD_INTERVAL` actions and compute reward
-        prev_states = []
-        prev_actions = []
+        voice_prev_states = []
+        voice_prev_actions = []
 
-        for i in range(num_steps):
+        for i in range(voice_num_steps):
             # apply greedy algo to get dance matrix with best reward
-            if len(prev_actions) == 0:
-                prev_states, prev_actions, reward = getbest(loc=START_POSITION,
+            if len(voice_prev_actions) == 0:
+                voice_prev_states, voice_prev_actions, voice_reward = getbest(loc=START_POSITION,
                                                             num_actions=REWARD_INTERVAL,
-                                                            prev_states=prev_states,
-                                                            prev_actions=prev_actions,
-                                                            music_matrix_full=music_matrix_full,
-                                                            num_steps=num_steps,
-                                                            dance_matrix_type=dance_matrix_type)
+                                                            prev_states=voice_prev_states,
+                                                            prev_actions=voice_prev_actions,
+                                                            music_matrix_full=voice_music_matrix_full,
+                                                            num_steps=voice_num_steps,
+                                                            dance_matrix_type=voice_dance_matrix_type)
             elif not i % REWARD_INTERVAL:
-                prev_states, prev_actions, reward = getbest(loc=prev_states[-1],
+                voice_prev_states, voice_prev_actions, voice_reward = getbest(loc=voice_prev_states[-1],
                                                             num_actions=REWARD_INTERVAL,
-                                                            prev_states=prev_states,
-                                                            prev_actions=prev_actions,
-                                                            music_matrix_full=music_matrix_full,
-                                                            num_steps=num_steps,
-                                                            dance_matrix_type=dance_matrix_type)
-            elif num_steps - len(prev_actions) != 0 and num_steps - len(prev_actions) < REWARD_INTERVAL:
-                prev_states, prev_actions, reward = getbest(loc=prev_states[-1],
-                                                            num_actions=num_steps-len(prev_states),
-                                                            prev_states=prev_states,
-                                                            prev_actions=prev_actions,
-                                                            music_matrix_full=music_matrix_full,
-                                                            num_steps=num_steps,
-                                                            dance_matrix_type=dance_matrix_type)
+                                                            prev_states=voice_prev_states,
+                                                            prev_actions=voice_prev_actions,
+                                                            music_matrix_full=voice_music_matrix_full,
+                                                            num_steps=voice_num_steps,
+                                                            dance_matrix_type=voice_dance_matrix_type)
+            elif voice_num_steps - len(voice_prev_actions) != 0 and voice_num_steps - len(voice_prev_actions) < REWARD_INTERVAL:
+                voice_prev_states, voice_prev_actions, voice_reward = getbest(loc=voice_prev_states[-1],
+                                                            num_actions=voice_num_steps-len(voice_prev_states),
+                                                            prev_states=voice_prev_states,
+                                                            prev_actions=voice_prev_actions,
+                                                            music_matrix_full=voice_music_matrix_full,
+                                                            num_steps=voice_num_steps,
+                                                            dance_matrix_type=voice_dance_matrix_type)
             else:
                 continue
+    # main code for instrumental
+    if instrumental_baseline in ['unsync_random', 'unsync_sequential', 'sync_sequential', 'sync_random']:
+        # check baselines
+        if instrumental_baseline == 'unsync_random':
+            states, actions = unsync_random(num_steps=voice_num_steps)
+        if instrumental_baseline == 'unsync_sequential':
+            states, actions = unsync_sequential(num_steps=voice_num_steps)
+        if instrumental_baseline == 'sync_sequential':
+            states, actions = sync_sequential(num_steps=voice_num_steps, filename=instrumental_songpath, duration=duration)
+        else:
+            states, actions = sync_random(num_steps=voice_num_steps, filename=instrumental_songpath, duration=duration)
 
+        # compute dance matrix
+        dance_matrix = get_dance_matrix(states, actions, instrumental_dance_matrix_type, voice_music_matrix_full)
+
+        # compute correlation
+        reward = music_reward(instrumental_music_matrix_full, dance_matrix, 'pearson')
+    else:
+        # our approach
+        # try out all combinations of `REWARD_INTERVAL` actions and compute reward
+        instrumental_prev_states = []
+        instrumental_prev_actions = []
+
+        for i in range(voice_num_steps):
+            # apply greedy algo to get dance matrix with best reward
+            if len(instrumental_prev_actions) == 0:
+                instrumental_prev_states, instrumental_prev_actions, instrumental_reward = getbest(loc=START_POSITION,
+                                                            num_actions=REWARD_INTERVAL,
+                                                            prev_states=instrumental_prev_states,
+                                                            prev_actions=instrumental_prev_actions,
+                                                            music_matrix_full=instrumental_music_matrix_full,
+                                                            num_steps=voice_num_steps,
+                                                            dance_matrix_type=instrumental_dance_matrix_type)
+            elif not i % REWARD_INTERVAL:
+                instrumental_prev_states, instrumental_prev_actions, instrumental_reward = getbest(loc=instrumental_prev_states[-1],
+                                                            num_actions=REWARD_INTERVAL,
+                                                            prev_states=instrumental_prev_states,
+                                                            prev_actions=instrumental_prev_actions,
+                                                            music_matrix_full=instrumental_music_matrix_full,
+                                                            num_steps=voice_num_steps,
+                                                            dance_matrix_type=instrumental_dance_matrix_type)
+            elif voice_num_steps - len(instrumental_prev_actions) != 0 and voice_num_steps - len(instrumental_prev_actions) < REWARD_INTERVAL:
+                instrumental_prev_states, instrumental_prev_actions, instrumental_reward = getbest(loc=instrumental_prev_states[-1],
+                                                            num_actions=voice_num_steps-len(instrumental_prev_states),
+                                                            prev_states=instrumental_prev_states,
+                                                            prev_actions=instrumental_prev_actions,
+                                                            music_matrix_full=instrumental_music_matrix_full,
+                                                            num_steps=voice_num_steps,
+                                                            dance_matrix_type=instrumental_dance_matrix_type)
+            else:
+                continue
         # get best dance matrix
-        dance_matrix = get_dance_matrix(prev_states, prev_actions, dance_matrix_type, music_matrix_full)
-
+        instrumental_dance_matrix = get_dance_matrix(instrumental_prev_states, instrumental_prev_actions, instrumental_dance_matrix_type, instrumental_music_matrix_full)
+        voice_dance_matrix = get_dance_matrix(instrumental_prev_states, instrumental_prev_actions, voice_dance_matrix_type, instrumental_music_matrix_full)
         # assign states and actions correctly correctly
-        states = prev_states
-        actions = prev_actions
+        instrumental_states = instrumental_prev_states
+        instrumental_actions = instrumental_prev_actions
+
+        voice_states = voice_prev_states
+        voice_actions = voice_prev_actions
 
     # map actions correctly
-    actions = [ACTION_MAPPING[a] for a in actions]
+    voice_actions = [ACTION_MAPPING[a] for a in voice_actions]
+    instrumental_actions = [ACTION_MAPPING[a] for a in instrumental_actions]
 
     # print results
-    print("Correlation = ", reward)
-    print("State sequence = ", states)
-    print("Action sequence = ", actions)
+    print("Voice Correlation = ", voice_reward)
+    print("Voice State sequence = ", voice_states)
+    print("Voice Action sequence = ", voice_actions)
+
+    print("Instrumental Correlation = ", instrumental_reward)
+    print("Instrumental State sequence = ", instrumental_states)
+    print("Instrumental Action sequence = ", instrumental_actions)
 
     # visualize results
-    save_matrices(music_matrix=music_matrix_full, dance_matrix=dance_matrix, duration=duration)
-    save_dance(states=states, visfolder=visfolder, songname=songname, duration=duration, num_steps=num_steps)
+     #save_matrices(music_matrix=voice_music_matrix_full, dance_matrix=dance_matrix, duration=duration)
+    save_circles_dance(voice_states=voice_states, instrumental_states=instrumental_states, visfolder=voice_visfolder, songname=voice_songname, duration=voice_duration, num_steps=voice_num_steps)
 
-    print(songname, " :: DONE!")
+    print("WeWillRockYou", " :: DONE!")
