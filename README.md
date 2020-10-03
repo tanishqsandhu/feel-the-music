@@ -1,8 +1,8 @@
-**Forked from @purvaten**
+# Forked from @purvaten
 
 
 
-# (Forked) Feel The Music: Automatically Generating A Dance For An Input Song
+# (Not official) Feel The Music: Automatically Generating A Dance For An Input Song
 
 Full text available at: https://arxiv.org/abs/2006.11905
 
