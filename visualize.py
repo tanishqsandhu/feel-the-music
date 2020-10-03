@@ -81,7 +81,7 @@ def save_circles_dance(voice_states, instrumental_states, visfolder, songname, d
     c = 0
     for i in range(num_steps):
         # ****************** circle creation ******************
-        image = Image.new('RGBA', (1000, 600), (0,0,0))
+        image = Image.new('RGBA', (600, 600), (0,0,0))
         draw = ImageDraw.Draw(image)
         x = 600 - ((voice_states[i]/20) * 600)
         y = 300
